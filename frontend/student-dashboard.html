@@ -382,7 +382,10 @@ function refreshMap() { loadLiveBuses(); showToast('Map refreshed', 'info'); }
 // Socket.io for real-time updates
 function initSocket() {
   try {
-    const socket = io('http://localhost:5000');
+    const serverUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5000'
+      : 'https://campus-bus-tracker-api.onrender.com';
+    const socket = io(serverUrl);
     socket.on('locationUpdate', (data) => {
       const bus = activeBuses.find(b => b.bus_id === data.bus_id);
       if (bus) {

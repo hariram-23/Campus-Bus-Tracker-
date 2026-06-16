@@ -1,5 +1,8 @@
 // ===== API Helper =====
-const API_BASE = 'http://localhost:5000/api';
+// Auto-switch between local dev and production
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000/api'
+  : 'https://campus-bus-tracker-api.onrender.com/api';
 
 function getToken() { return localStorage.getItem('cbt_token'); }
 function getUser() { return JSON.parse(localStorage.getItem('cbt_user') || 'null'); }
