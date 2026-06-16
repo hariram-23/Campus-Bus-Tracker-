@@ -157,9 +157,10 @@ function initMap() {
 }
 
 async function startTrip() {
+  const btn = document.getElementById('btnStartTrip');
   try {
-    document.getElementById('btnStartTrip').disabled = true;
-    document.getElementById('btnStartTrip').textContent = 'Starting...';
+    btn.disabled = true;
+    btn.textContent = 'Starting...';
     const res = await api.trips.start();
     tripActive = true;
     tripStartTime = new Date();
@@ -167,10 +168,19 @@ async function startTrip() {
     startGPS();
     showToast('Trip started! GPS sharing active.', 'success');
   } catch (err) {
-    showToast(err.message, 'danger');
+    // If trip already active, resume it instead of showing error
+    if (err.message && err.message.toLowerCase().includes('already active')) {
+      tripActive = true;
+      tripStartTime = new Date();
+      updateTripUI(true);
+      startGPS();
+      showToast('Resumed existing active trip.', 'info');
+    } else {
+      showToast('❌ ' + err.message + ' — Make sure admin assigned a bus to your account.', 'danger', 6000);
+    }
   } finally {
-    document.getElementById('btnStartTrip').disabled = false;
-    document.getElementById('btnStartTrip').textContent = '▶ Start Trip';
+    btn.disabled = false;
+    btn.textContent = '▶ Start Trip';
   }
 }
 
@@ -316,7 +326,23 @@ async function loadMyHistory() {
   } catch {}
 }
 
+// Check on load if there's already an active trip (e.g. after re-login)
+async function checkActiveTrip() {
+  try {
+    const trips = await api.trips.history();
+    const active = trips.find(t => t.status === 'active');
+    if (active) {
+      tripActive = true;
+      tripStartTime = new Date(active.start_time);
+      updateTripUI(true);
+      startGPS();
+      showToast('Resuming active trip — GPS sharing restarted.', 'info');
+    }
+  } catch {}
+}
+
 initMap();
+checkActiveTrip();
 </script>
 </body>
 </html>
