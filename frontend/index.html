@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Bus Tracker</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--dark);
+      overflow: hidden;
+    }
+    .hero-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 4rem;
+      position: relative;
+      z-index: 10;
+    }
+    .hero-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 4rem 2rem;
+      position: relative;
+    }
+    .hero-glow {
+      position: absolute;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(79,70,229,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      background: rgba(79,70,229,0.15);
+      border: 1px solid rgba(79,70,229,0.3);
+      border-radius: 30px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--primary-light);
+      margin-bottom: 2rem;
+    }
+    .hero-title {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      max-width: 800px;
+    }
+    .hero-title span {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-desc {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin-bottom: 3rem;
+      line-height: 1.7;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 5rem;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      max-width: 1100px;
+      width: 100%;
+      padding: 0 2rem;
+    }
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      text-align: left;
+      transition: var(--transition);
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(79,70,229,0.4);
+      box-shadow: 0 10px 30px rgba(79,70,229,0.15);
+    }
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    .feature-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .feature-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+    .login-section {
+      padding: 5rem 2rem;
+      background: var(--dark-2);
+    }
+    .login-cards {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .login-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      flex: 1;
+      min-width: 240px;
+      max-width: 280px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .login-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .login-card.student:hover { border-color: var(--primary); }
+    .login-card.driver:hover { border-color: var(--success); }
+    .login-card.admin:hover { border-color: var(--warning); }
+    .login-card-icon {
+      width: 72px; height: 72px;
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 1.25rem;
+    }
+    .login-card.student .login-card-icon { background: rgba(79,70,229,0.15); }
+    .login-card.driver .login-card-icon { background: rgba(16,185,129,0.15); }
+    .login-card.admin .login-card-icon { background: rgba(245,158,11,0.15); }
+    .login-card h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .login-card p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+    .section-header { text-align: center; margin-bottom: 3rem; }
+    .section-header h2 { font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .section-header p { color: var(--text-muted); }
+    footer {
+      background: var(--dark);
+      border-top: 1px solid var(--card-border);
+      padding: 1.5rem 4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <nav class="hero-nav">
+      <div style="display:flex;align-items:center;gap:0.75rem;font-size:1.2rem;font-weight:800;">
+        <div style="width:38px;height:38px;background:var(--gradient);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">🚌</div>
+        Campus Bus Tracker
+      </div>
+      <div style="display:flex;gap:0.75rem;">
+        <a href="login.html?role=student" class="btn btn-outline btn-sm">Student Login</a>
+        <a href="login.html?role=admin" class="btn btn-primary btn-sm">Admin Panel</a>
+      </div>
+    </nav>
+
+    <div class="hero-body">
+      <div class="hero-glow"></div>
+      <div class="hero-badge">🟢 Live Tracking System</div>
+      <h1 class="hero-title">
+        Track Your College Bus<br /><span>In Real Time</span>
+      </h1>
+      <p class="hero-desc">
+        Never miss your bus again. Get live location updates, accurate ETAs, delay alerts,
+        and complete route information — all in one place.
+      </p>
+      <div class="hero-actions">
+        <a href="login.html?role=student" class="btn btn-primary btn-lg">🎓 Student Portal</a>
+        <a href="login.html?role=driver" class="btn btn-outline btn-lg">🚌 Driver Portal</a>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📍</div>
+          <div class="feature-title">Live Bus Location</div>
+          <div class="feature-desc">Track bus movement in real time on an interactive map powered by OpenStreetMap.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⏱️</div>
+          <div class="feature-title">Smart ETA Prediction</div>
+          <div class="feature-desc">AI-powered arrival time estimates based on current position, speed, and historical trip data.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <div class="feature-title">Delay Alerts</div>
+          <div class="feature-desc">Instant notifications when a bus is running late or approaching your stop.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🗺️</div>
+          <div class="feature-title">Route Visualization</div>
+          <div class="feature-desc">View complete route maps with all stops, timings, and bus assignments.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="login-section">
+    <div class="section-header">
+      <h2>Choose Your Role</h2>
+      <p>Select how you want to access the system</p>
+    </div>
+    <div class="login-cards">
+      <div class="login-card student" onclick="window.location.href='login.html?role=student'">
+        <div class="login-card-icon">🎓</div>
+        <h3>Student</h3>
+        <p>Track buses, view ETAs, and get stop alerts</p>
+        <button class="btn btn-primary btn-block">Login as Student</button>
+      </div>
+      <div class="login-card driver" onclick="window.location.href='login.html?role=driver'">
+        <div class="login-card-icon">🚌</div>
+        <h3>Driver</h3>
+        <p>Start trips and share live GPS location</p>
+        <button class="btn btn-success btn-block">Login as Driver</button>
+      </div>
+      <div class="login-card admin" onclick="window.location.href='login.html?role=admin'">
+        <div class="login-card-icon">⚙️</div>
+        <h3>Admin</h3>
+        <p>Manage buses, routes, drivers and analytics</p>
+        <button class="btn btn-secondary btn-block" style="background:var(--warning);color:#000">Login as Admin</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>© 2024 Campus Bus Tracker — College Project</span>
+    <span>Built with HTML, CSS, JS, Node.js, MySQL, Leaflet.js</span>
+  </footer>
+</body>
+</html>

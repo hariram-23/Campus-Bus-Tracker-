@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Campus Bus Tracker</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .login-wrapper {
+      display: flex;
+      width: 100%;
+      max-width: 900px;
+      min-height: 560px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+    }
+    .login-left {
+      flex: 1;
+      background: var(--gradient);
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .login-left::before {
+      content: '';
+      position: absolute;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+      bottom: -80px; right: -80px;
+    }
+    .login-left::after {
+      content: '';
+      position: absolute;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      top: -60px; left: -60px;
+    }
+    .login-left-content { position: relative; z-index: 1; }
+    .login-brand { display: flex; align-items: center; gap: 0.75rem; font-size: 1.2rem; font-weight: 800; color: white; }
+    .login-brand-icon {
+      width: 44px; height: 44px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+    }
+    .login-left h1 { color: white; font-size: 2rem; margin: 2.5rem 0 1rem; line-height: 1.2; }
+    .login-left p { color: rgba(255,255,255,0.75); font-size: 0.9rem; line-height: 1.6; }
+    .login-features { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2.5rem; }
+    .login-feature { display: flex; align-items: center; gap: 0.75rem; color: white; font-size: 0.85rem; }
+    .login-feature-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.7); flex-shrink: 0; }
+    .login-right {
+      flex: 1;
+      background: var(--dark-2);
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .role-tabs {
+      display: flex;
+      gap: 0.5rem;
+      background: var(--dark);
+      border-radius: var(--radius-sm);
+      padding: 0.25rem;
+      margin-bottom: 2rem;
+    }
+    .role-tab {
+      flex: 1;
+      padding: 0.6rem;
+      text-align: center;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: var(--transition);
+    }
+    .role-tab.active { background: var(--dark-2); color: var(--text); box-shadow: var(--shadow-sm); }
+    .role-tab:hover:not(.active) { color: var(--text); }
+    .form-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.25rem; }
+    .form-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 2rem; }
+    .input-icon-wrap { position: relative; }
+    .input-icon-wrap .icon {
+      position: absolute;
+      left: 1rem; top: 50%;
+      transform: translateY(-50%);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+    .input-icon-wrap .form-control { padding-left: 2.75rem; }
+    .forgot-link { font-size: 0.8rem; color: var(--primary-light); text-align: right; display: block; margin-top: -0.5rem; margin-bottom: 1.25rem; cursor: pointer; }
+    .register-link { text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 1.25rem; }
+    .register-link span { color: var(--primary-light); cursor: pointer; font-weight: 600; }
+    @media (max-width: 640px) {
+      .login-left { display: none; }
+      .login-wrapper { max-width: 400px; }
+    }
+  </style>
+</head>
+<body>
+<div style="padding:2rem;width:100%;display:flex;justify-content:center;align-items:center;min-height:100vh;">
+  <div class="login-wrapper">
+    <div class="login-left">
+      <div class="login-left-content">
+        <div class="login-brand">
+          <div class="login-brand-icon">🚌</div>
+          Campus Bus Tracker
+        </div>
+        <h1>Real-Time Bus Tracking System</h1>
+        <p>Monitor your college buses live, get accurate ETAs and never wait unnecessarily again.</p>
+        <div class="login-features">
+          <div class="login-feature"><div class="login-feature-dot"></div>Live GPS tracking on interactive map</div>
+          <div class="login-feature"><div class="login-feature-dot"></div>AI-powered ETA prediction</div>
+          <div class="login-feature"><div class="login-feature-dot"></div>Delay alerts and notifications</div>
+          <div class="login-feature"><div class="login-feature-dot"></div>Complete route visualization</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-right">
+      <div class="role-tabs">
+        <div class="role-tab" data-role="student" onclick="setRole('student')">🎓 Student</div>
+        <div class="role-tab" data-role="driver" onclick="setRole('driver')">🚌 Driver</div>
+        <div class="role-tab" data-role="admin" onclick="setRole('admin')">⚙️ Admin</div>
+      </div>
+
+      <!-- Login Form -->
+      <div id="loginForm">
+        <div class="form-title">Welcome Back</div>
+        <div class="form-subtitle" id="formSubtitle">Sign in to your student account</div>
+        <form onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <div class="input-icon-wrap">
+              <span class="icon">✉️</span>
+              <input type="email" id="loginEmail" class="form-control" placeholder="you@college.edu" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-icon-wrap">
+              <span class="icon">🔒</span>
+              <input type="password" id="loginPassword" class="form-control" placeholder="Enter password" required />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn">Sign In</button>
+        </form>
+        <div id="registerToggle" class="register-link">
+          Don't have an account? <span onclick="showRegister()">Register here</span>
+        </div>
+      </div>
+
+      <!-- Register Form (student only) -->
+      <div id="registerForm" class="hidden">
+        <div class="form-title">Create Account</div>
+        <div class="form-subtitle">Register as a new student</div>
+        <form onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <div class="input-icon-wrap">
+              <span class="icon">👤</span>
+              <input type="text" id="regName" class="form-control" placeholder="Your full name" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <div class="input-icon-wrap">
+              <span class="icon">✉️</span>
+              <input type="email" id="regEmail" class="form-control" placeholder="you@college.edu" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone (optional)</label>
+            <div class="input-icon-wrap">
+              <span class="icon">📱</span>
+              <input type="tel" id="regPhone" class="form-control" placeholder="10-digit number" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-icon-wrap">
+              <span class="icon">🔒</span>
+              <input type="password" id="regPassword" class="form-control" placeholder="Min 6 characters" required />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg">Create Account</button>
+        </form>
+        <div class="register-link">Already have an account? <span onclick="showLogin()">Sign in</span></div>
+      </div>
+
+      <div style="text-align:center;margin-top:1.5rem;">
+        <a href="index.html" style="font-size:0.8rem;color:var(--text-muted);">← Back to Home</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  let currentRole = 'student';
+
+  function setRole(role) {
+    currentRole = role;
+    document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`[data-role="${role}"]`).classList.add('active');
+    const subtitles = { student: 'Sign in to your student account', driver: 'Sign in to your driver account', admin: 'Sign in to the admin panel' };
+    document.getElementById('formSubtitle').textContent = subtitles[role];
+    document.getElementById('registerToggle').style.display = role === 'student' ? 'block' : 'none';
+    showLogin();
+  }
+
+  function showRegister() {
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.remove('hidden');
+  }
+  function showLogin() {
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+    try {
+      const loginFns = { student: api.auth.studentLogin, driver: api.auth.driverLogin, admin: api.auth.adminLogin };
+      const data = await loginFns[currentRole]({ email, password });
+      setAuth(data.token, data.user);
+      showToast('Login successful!', 'success');
+      const pages = { student: 'student-dashboard.html', driver: 'driver-dashboard.html', admin: 'admin-dashboard.html' };
+      setTimeout(() => window.location.href = pages[currentRole], 800);
+    } catch (err) {
+      showToast(err.message, 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  }
+
+  async function handleRegister(e) {
+    e.preventDefault();
+    try {
+      const data = await api.auth.studentRegister({
+        name: document.getElementById('regName').value,
+        email: document.getElementById('regEmail').value,
+        phone: document.getElementById('regPhone').value,
+        password: document.getElementById('regPassword').value
+      });
+      setAuth(data.token, data.user);
+      showToast('Account created!', 'success');
+      setTimeout(() => window.location.href = 'student-dashboard.html', 800);
+    } catch (err) {
+      showToast(err.message, 'danger');
+    }
+  }
+
+  // Set initial role from URL
+  const urlRole = new URLSearchParams(window.location.search).get('role') || 'student';
+  setRole(urlRole);
+
+  // Redirect if already logged in
+  const user = getUser();
+  if (user) {
+    const pages = { student: 'student-dashboard.html', driver: 'driver-dashboard.html', admin: 'admin-dashboard.html' };
+    if (pages[user.role]) window.location.href = pages[user.role];
+  }
+</script>
+</body>
+</html>

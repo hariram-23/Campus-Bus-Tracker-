@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Driver Dashboard — Campus Bus Tracker</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    .trip-control {
+      background: var(--gradient);
+      border-radius: var(--radius);
+      padding: 2rem;
+      color: white;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .trip-control h2 { font-size: 1.4rem; margin-bottom: 0.5rem; }
+    .trip-control p { opacity: 0.8; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .trip-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-start { background: white; color: #10b981; font-weight: 700; padding: 0.75rem 2rem; border-radius: 10px; cursor: pointer; border: none; font-size: 1rem; transition: all 0.2s; }
+    .btn-start:hover { transform: scale(1.04); }
+    .btn-end { background: rgba(255,255,255,0.2); color: white; font-weight: 700; padding: 0.75rem 2rem; border-radius: 10px; cursor: pointer; border: 2px solid rgba(255,255,255,0.5); font-size: 1rem; transition: all 0.2s; }
+    .btn-end:hover { background: rgba(239,68,68,0.8); border-color: transparent; transform: scale(1.04); }
+    .gps-status {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.85rem; margin-top: 1rem; justify-content: center;
+    }
+    .status-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .info-row { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--card-border); font-size: 0.875rem; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--text-muted); }
+    #driverMap { height: 340px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="logo-icon">🚌</div>
+    Campus Bus Tracker
+  </div>
+  <div class="navbar-nav">
+    <div class="nav-user">
+      <div class="nav-avatar" id="avatarLetter">D</div>
+      <span id="driverName">Driver</span>
+      <span style="cursor:pointer;color:var(--text-muted)" onclick="logout()">⏻</span>
+    </div>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Driver Panel</div>
+      <div class="sidebar-item active" onclick="showPage('trip')"><span class="icon">🚌</span> Trip Control</div>
+      <div class="sidebar-item" onclick="showPage('history')"><span class="icon">📋</span> My Trips</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">GPS Status</div>
+      <div id="sidebarGpsStatus" style="padding:0.75rem;font-size:0.8rem;color:var(--text-muted);">GPS Idle</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div id="page-trip">
+      <div class="page-header">
+        <div class="page-title">Trip Control</div>
+        <div class="page-subtitle">Manage your active bus trip</div>
+      </div>
+
+      <div class="trip-control" id="tripControlCard">
+        <h2 id="tripStatusText">Ready to Start</h2>
+        <p id="tripStatusDesc">Start your trip to begin sharing GPS location with students</p>
+        <div class="trip-btns">
+          <button class="btn-start" id="btnStartTrip" onclick="startTrip()">▶ Start Trip</button>
+          <button class="btn-end" id="btnEndTrip" onclick="endTrip()" style="display:none">⏹ End Trip</button>
+        </div>
+        <div class="gps-status" id="gpsStatus">
+          <div class="pulse-dot" style="background:rgba(255,255,255,0.5)"></div>
+          GPS Waiting...
+        </div>
+      </div>
+
+      <div class="status-row">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">📊 Current Trip</div>
+          <div class="info-row"><span class="info-label">Trip Status</span><span id="currentTripStatus"><span class="badge badge-secondary">Not Started</span></span></div>
+          <div class="info-row"><span class="info-label">Started At</span><span id="tripStartTime">—</span></div>
+          <div class="info-row"><span class="info-label">Duration</span><span id="tripDuration">—</span></div>
+          <div class="info-row"><span class="info-label">Last Update</span><span id="lastUpdate">—</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">📍 GPS Data</div>
+          <div class="info-row"><span class="info-label">Latitude</span><span id="gpsLat">—</span></div>
+          <div class="info-row"><span class="info-label">Longitude</span><span id="gpsLng">—</span></div>
+          <div class="info-row"><span class="info-label">Speed</span><span id="gpsSpeed">—</span></div>
+          <div class="info-row"><span class="info-label">Accuracy</span><span id="gpsAccuracy">—</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🗺️ Your Live Position</div>
+          <span id="mapStatusBadge" class="badge badge-secondary">Idle</span>
+        </div>
+        <div id="driverMap"></div>
+      </div>
+    </div>
+
+    <div id="page-history" class="hidden">
+      <div class="page-header">
+        <div class="page-title">My Trip History</div>
+        <div class="page-subtitle">Your past trips</div>
+      </div>
+      <div class="card">
+        <div class="table-wrapper">
+          <table class="table">
+            <thead><tr><th>Bus</th><th>Route</th><th>Start</th><th>End</th><th>Distance</th><th>Status</th></tr></thead>
+            <tbody id="myTripHistory"><tr><td colspan="6" class="text-center text-muted">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/api.js"></script>
+<script>
+const user = requireAuth('driver');
+if (user) {
+  document.getElementById('driverName').textContent = user.name;
+  document.getElementById('avatarLetter').textContent = user.name[0].toUpperCase();
+}
+
+let map, driverMarker;
+let tripActive = false;
+let tripStartTime = null;
+let gpsWatchId = null;
+let durationTimer = null;
+
+function showPage(page) {
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+  document.getElementById(`page-${page}`).classList.remove('hidden');
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll(`[onclick*="${page}"]`).forEach(el => el.classList.add('active'));
+  if (page === 'history') loadMyHistory();
+  if (page === 'trip' && map) setTimeout(() => map.invalidateSize(), 100);
+}
+
+function initMap() {
+  map = L.map('driverMap').setView([17.385044, 78.486671], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+}
+
+async function startTrip() {
+  try {
+    document.getElementById('btnStartTrip').disabled = true;
+    document.getElementById('btnStartTrip').textContent = 'Starting...';
+    const res = await api.trips.start();
+    tripActive = true;
+    tripStartTime = new Date();
+    updateTripUI(true);
+    startGPS();
+    showToast('Trip started! GPS sharing active.', 'success');
+  } catch (err) {
+    showToast(err.message, 'danger');
+  } finally {
+    document.getElementById('btnStartTrip').disabled = false;
+    document.getElementById('btnStartTrip').textContent = '▶ Start Trip';
+  }
+}
+
+async function endTrip() {
+  if (!confirm('Are you sure you want to end this trip?')) return;
+  try {
+    const res = await api.trips.end();
+    tripActive = false;
+    stopGPS();
+    updateTripUI(false);
+    showToast(`Trip ended. Distance: ${res.distance || 0} km`, 'success');
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+}
+
+function updateTripUI(active) {
+  const btnStart = document.getElementById('btnStartTrip');
+  const btnEnd = document.getElementById('btnEndTrip');
+  btnStart.style.display = active ? 'none' : 'inline-block';
+  btnEnd.style.display = active ? 'inline-block' : 'none';
+
+  const statusText = document.getElementById('tripStatusText');
+  const statusDesc = document.getElementById('tripStatusDesc');
+  const statusBadge = document.getElementById('currentTripStatus');
+  const mapBadge = document.getElementById('mapStatusBadge');
+
+  if (active) {
+    statusText.textContent = 'Trip Active 🟢';
+    statusDesc.textContent = 'Students can see your live location on the map';
+    statusBadge.innerHTML = '<span class="badge badge-success">Active</span>';
+    mapBadge.className = 'badge badge-success';
+    mapBadge.textContent = 'Live';
+    document.getElementById('tripStartTime').textContent = tripStartTime.toLocaleTimeString();
+    durationTimer = setInterval(updateDuration, 1000);
+  } else {
+    statusText.textContent = 'Ready to Start';
+    statusDesc.textContent = 'Start your trip to begin sharing GPS location with students';
+    statusBadge.innerHTML = '<span class="badge badge-secondary">Not Started</span>';
+    mapBadge.className = 'badge badge-secondary';
+    mapBadge.textContent = 'Idle';
+    document.getElementById('tripStartTime').textContent = '—';
+    document.getElementById('tripDuration').textContent = '—';
+    if (durationTimer) clearInterval(durationTimer);
+  }
+}
+
+function updateDuration() {
+  if (!tripStartTime) return;
+  const diff = Math.floor((new Date() - tripStartTime) / 1000);
+  const h = Math.floor(diff / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  const s = diff % 60;
+  document.getElementById('tripDuration').textContent =
+    `${h > 0 ? h + 'h ' : ''}${m}m ${s}s`;
+}
+
+function startGPS() {
+  if (!navigator.geolocation) {
+    showToast('Geolocation not supported. Using simulated position.', 'warning');
+    simulateGPS();
+    return;
+  }
+  gpsWatchId = navigator.geolocation.watchPosition(onGPS, onGPSError, {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 5000
+  });
+  document.getElementById('gpsStatus').innerHTML = '<div class="pulse-dot"></div> GPS Sharing Active';
+  document.getElementById('sidebarGpsStatus').innerHTML = '<span style="color:var(--success)">● GPS Active</span>';
+}
+
+function onGPS(pos) {
+  const { latitude: lat, longitude: lng, speed, accuracy } = pos.coords;
+  const kmh = speed ? (speed * 3.6).toFixed(1) : 0;
+
+  document.getElementById('gpsLat').textContent = lat.toFixed(6);
+  document.getElementById('gpsLng').textContent = lng.toFixed(6);
+  document.getElementById('gpsSpeed').textContent = `${kmh} km/h`;
+  document.getElementById('gpsAccuracy').textContent = `±${accuracy ? Math.round(accuracy) : '?'}m`;
+  document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+
+  if (!driverMarker) {
+    driverMarker = L.marker([lat, lng], {
+      icon: L.divIcon({
+        html: `<div style="background:#4f46e5;color:white;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)">🚌</div>`,
+        className: '', iconSize: [44,44], iconAnchor: [22,22]
+      })
+    }).addTo(map);
+  } else {
+    driverMarker.setLatLng([lat, lng]);
+  }
+  map.setView([lat, lng], 15);
+
+  // Send to server
+  if (tripActive) {
+    api.trips.updateLocation({ latitude: lat, longitude: lng, speed: parseFloat(kmh) }).catch(() => {});
+  }
+}
+
+function onGPSError(err) {
+  document.getElementById('gpsStatus').innerHTML = '⚠️ GPS Error — Using simulation';
+  simulateGPS();
+}
+
+function simulateGPS() {
+  // Simulates movement for demo purposes
+  let lat = 17.385044, lng = 78.486671;
+  const sim = setInterval(() => {
+    if (!tripActive) { clearInterval(sim); return; }
+    lat += (Math.random() - 0.48) * 0.001;
+    lng += (Math.random() - 0.45) * 0.001;
+    const fakePos = { coords: { latitude: lat, longitude: lng, speed: Math.random() * 15, accuracy: 10 } };
+    onGPS(fakePos);
+  }, 3000);
+}
+
+function stopGPS() {
+  if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
+  gpsWatchId = null;
+  document.getElementById('gpsStatus').innerHTML = '<div class="pulse-dot" style="background:rgba(255,255,255,0.5)"></div> GPS Waiting...';
+  document.getElementById('sidebarGpsStatus').textContent = 'GPS Idle';
+}
+
+async function loadMyHistory() {
+  try {
+    const trips = await api.trips.history();
+    const tbody = document.getElementById('myTripHistory');
+    if (!trips.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No trips yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = trips.map(t => `
+      <tr>
+        <td><strong>${t.bus_number}</strong></td>
+        <td>${t.route_name}</td>
+        <td>${t.start_time ? new Date(t.start_time).toLocaleString() : '—'}</td>
+        <td>${t.end_time ? new Date(t.end_time).toLocaleString() : '—'}</td>
+        <td>${t.distance ? `${t.distance} km` : '—'}</td>
+        <td><span class="badge badge-${t.status==='completed'?'success':t.status==='active'?'primary':'secondary'}">${t.status}</span></td>
+      </tr>
+    `).join('');
+  } catch {}
+}
+
+initMap();
+</script>
+</body>
+</html>
