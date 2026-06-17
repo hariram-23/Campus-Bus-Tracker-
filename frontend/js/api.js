@@ -1,5 +1,5 @@
 // ===== API Helper =====
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://campus-bus-tracker.onrender.com/api';
 
 function getToken() { return localStorage.getItem('cbt_token'); }
 function getUser() { return JSON.parse(localStorage.getItem('cbt_user') || 'null'); }

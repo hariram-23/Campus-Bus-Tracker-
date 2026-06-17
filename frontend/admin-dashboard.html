@@ -617,7 +617,7 @@ function filterTable(tbodyId, query) {
 
 /* ---- socket ---- */
 try {
-  var socket = io('http://localhost:5000');
+  var socket = io('https://campus-bus-tracker.onrender.com');
   socket.on('locationUpdate', function(data) {
     if (adminMarkers[data.bus_id]) adminMarkers[data.bus_id].setLatLng([data.latitude, data.longitude]);
   });

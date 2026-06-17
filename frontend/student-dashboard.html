@@ -735,7 +735,7 @@ async function loadHistory() {
 // ===== Socket.io real-time =====
 function initSocket() {
   try {
-    const socket = io('http://localhost:5000');
+    const socket = io('https://campus-bus-tracker.onrender.com');
     socket.on('locationUpdate', (data) => {
       const bus = activeBuses.find(b => b.bus_id === data.bus_id);
       if (bus) {
