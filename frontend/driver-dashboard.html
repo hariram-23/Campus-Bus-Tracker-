@@ -75,13 +75,41 @@
         <h2 id="tripStatusText">Ready to Start</h2>
         <p id="tripStatusDesc">Start your trip to begin sharing GPS location with students</p>
         <div class="trip-btns">
-          <button class="btn-start" id="btnStartTrip" onclick="startTrip()">▶ Start Trip</button>
-          <button class="btn-end" id="btnEndTrip" onclick="endTrip()" style="display:none">⏹ End Trip</button>
+          <button class="btn-start" id="btnStartTrip" onclick="startTrip()">&#x25B6; Start Trip</button>
+          <button class="btn-end" id="btnEndTrip" onclick="endTrip()" style="display:none">&#x23F9; End Trip</button>
         </div>
         <div class="gps-status" id="gpsStatus">
           <div class="pulse-dot" style="background:rgba(255,255,255,0.5)"></div>
           GPS Waiting...
         </div>
+      </div>
+
+      <!-- Bus & Route Info Card -->
+      <div class="card" id="busInfoCard" style="margin-bottom:1.5rem;display:none">
+        <div class="card-title" style="margin-bottom:1rem;">🚌 Your Assigned Bus</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;">
+          <div style="background:var(--input-bg);border-radius:10px;padding:.85rem 1rem;">
+            <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.05em">Bus Number</div>
+            <div style="font-size:1.15rem;font-weight:800;color:var(--primary)" id="infoBusNumber">—</div>
+          </div>
+          <div style="background:var(--input-bg);border-radius:10px;padding:.85rem 1rem;">
+            <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.05em">Route</div>
+            <div style="font-size:1rem;font-weight:700" id="infoRouteName">—</div>
+          </div>
+          <div style="background:var(--input-bg);border-radius:10px;padding:.85rem 1rem;">
+            <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.05em">From</div>
+            <div style="font-size:.95rem;font-weight:600;color:#10b981" id="infoStartPoint">—</div>
+          </div>
+          <div style="background:var(--input-bg);border-radius:10px;padding:.85rem 1rem;">
+            <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.05em">To</div>
+            <div style="font-size:.95rem;font-weight:600;color:#ef4444" id="infoEndPoint">—</div>
+          </div>
+        </div>
+      </div>
+      <div id="noBusWarning" class="card" style="margin-bottom:1.5rem;text-align:center;padding:1.5rem;display:none">
+        <div style="font-size:2rem;margin-bottom:.5rem">⚠️</div>
+        <div style="font-weight:700;margin-bottom:.4rem">No Bus Assigned</div>
+        <div style="color:var(--text-muted);font-size:.875rem">Please contact admin to assign a bus and route to your account.</div>
       </div>
 
       <div class="status-row">
@@ -118,7 +146,7 @@
       <div class="card">
         <div class="table-wrapper">
           <table class="table">
-            <thead><tr><th>Bus</th><th>Route</th><th>Start</th><th>End</th><th>Distance</th><th>Status</th></tr></thead>
+            <thead><tr><th>Bus</th><th>Route</th><th>Start</th><th>End</th><th>Distance</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="myTripHistory"><tr><td colspan="6" class="text-center text-muted">Loading...</td></tr></tbody>
           </table>
         </div>
@@ -141,6 +169,7 @@ let tripActive = false;
 let tripStartTime = null;
 let gpsWatchId = null;
 let durationTimer = null;
+let activeTrip = null;
 
 function showPage(page) {
   document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
@@ -156,31 +185,37 @@ function initMap() {
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 }
 
-async function startTrip() {
-  const btn = document.getElementById('btnStartTrip');
+// On load — check for existing active trip (re-login restore)
+async function checkActiveTrip() {
   try {
-    btn.disabled = true;
-    btn.textContent = 'Starting...';
+    const trip = await api.trips.getActive();
+    if (trip) {
+      activeTrip = trip;
+      tripActive = true;
+      tripStartTime = new Date(trip.start_time);
+      updateTripUI(true, trip);
+      startGPS();
+      showToast('Active trip restored: ' + (trip.route_name || 'Unknown route'), 'info');
+    }
+  } catch (e) {}
+}
+
+async function startTrip() {
+  try {
+    document.getElementById('btnStartTrip').disabled = true;
+    document.getElementById('btnStartTrip').textContent = 'Starting...';
     const res = await api.trips.start();
     tripActive = true;
     tripStartTime = new Date();
-    updateTripUI(true);
+    activeTrip = res;
+    updateTripUI(true, null);
     startGPS();
     showToast('Trip started! GPS sharing active.', 'success');
   } catch (err) {
-    // If trip already active, resume it instead of showing error
-    if (err.message && err.message.toLowerCase().includes('already active')) {
-      tripActive = true;
-      tripStartTime = new Date();
-      updateTripUI(true);
-      startGPS();
-      showToast('Resumed existing active trip.', 'info');
-    } else {
-      showToast('❌ ' + err.message + ' — Make sure admin assigned a bus to your account.', 'danger', 6000);
-    }
+    showToast(err.message, 'danger');
   } finally {
-    btn.disabled = false;
-    btn.textContent = '▶ Start Trip';
+    document.getElementById('btnStartTrip').disabled = false;
+    document.getElementById('btnStartTrip').textContent = '▶ Start Trip';
   }
 }
 
@@ -189,39 +224,39 @@ async function endTrip() {
   try {
     const res = await api.trips.end();
     tripActive = false;
+    activeTrip = null;
     stopGPS();
-    updateTripUI(false);
+    updateTripUI(false, null);
     showToast(`Trip ended. Distance: ${res.distance || 0} km`, 'success');
+    loadMyHistory();
   } catch (err) {
     showToast(err.message, 'danger');
   }
 }
 
-function updateTripUI(active) {
+function updateTripUI(active, trip) {
   const btnStart = document.getElementById('btnStartTrip');
   const btnEnd = document.getElementById('btnEndTrip');
   btnStart.style.display = active ? 'none' : 'inline-block';
   btnEnd.style.display = active ? 'inline-block' : 'none';
 
-  const statusText = document.getElementById('tripStatusText');
-  const statusDesc = document.getElementById('tripStatusDesc');
-  const statusBadge = document.getElementById('currentTripStatus');
-  const mapBadge = document.getElementById('mapStatusBadge');
-
   if (active) {
-    statusText.textContent = 'Trip Active 🟢';
-    statusDesc.textContent = 'Students can see your live location on the map';
-    statusBadge.innerHTML = '<span class="badge badge-success">Active</span>';
-    mapBadge.className = 'badge badge-success';
-    mapBadge.textContent = 'Live';
-    document.getElementById('tripStartTime').textContent = tripStartTime.toLocaleTimeString();
+    document.getElementById('tripStatusText').textContent = 'Trip Active 🟢';
+    document.getElementById('tripStatusDesc').textContent = trip && trip.route_name
+      ? 'Route: ' + trip.route_name + ' · ' + (trip.bus_number || '')
+      : 'Students can see your live location on the map';
+    document.getElementById('currentTripStatus').innerHTML = '<span class="badge badge-success">Active</span>';
+    document.getElementById('mapStatusBadge').className = 'badge badge-success';
+    document.getElementById('mapStatusBadge').textContent = 'Live';
+    document.getElementById('tripStartTime').textContent = tripStartTime ? tripStartTime.toLocaleString() : '—';
+    if (durationTimer) clearInterval(durationTimer);
     durationTimer = setInterval(updateDuration, 1000);
   } else {
-    statusText.textContent = 'Ready to Start';
-    statusDesc.textContent = 'Start your trip to begin sharing GPS location with students';
-    statusBadge.innerHTML = '<span class="badge badge-secondary">Not Started</span>';
-    mapBadge.className = 'badge badge-secondary';
-    mapBadge.textContent = 'Idle';
+    document.getElementById('tripStatusText').textContent = 'Ready to Start';
+    document.getElementById('tripStatusDesc').textContent = 'Start your trip to begin sharing GPS location with students';
+    document.getElementById('currentTripStatus').innerHTML = '<span class="badge badge-secondary">Not Started</span>';
+    document.getElementById('mapStatusBadge').className = 'badge badge-secondary';
+    document.getElementById('mapStatusBadge').textContent = 'Idle';
     document.getElementById('tripStartTime').textContent = '—';
     document.getElementById('tripDuration').textContent = '—';
     if (durationTimer) clearInterval(durationTimer);
@@ -245,9 +280,7 @@ function startGPS() {
     return;
   }
   gpsWatchId = navigator.geolocation.watchPosition(onGPS, onGPSError, {
-    enableHighAccuracy: true,
-    timeout: 10000,
-    maximumAge: 5000
+    enableHighAccuracy: true, timeout: 10000, maximumAge: 5000
   });
   document.getElementById('gpsStatus').innerHTML = '<div class="pulse-dot"></div> GPS Sharing Active';
   document.getElementById('sidebarGpsStatus').innerHTML = '<span style="color:var(--success)">● GPS Active</span>';
@@ -256,13 +289,11 @@ function startGPS() {
 function onGPS(pos) {
   const { latitude: lat, longitude: lng, speed, accuracy } = pos.coords;
   const kmh = speed ? (speed * 3.6).toFixed(1) : 0;
-
   document.getElementById('gpsLat').textContent = lat.toFixed(6);
   document.getElementById('gpsLng').textContent = lng.toFixed(6);
   document.getElementById('gpsSpeed').textContent = `${kmh} km/h`;
   document.getElementById('gpsAccuracy').textContent = `±${accuracy ? Math.round(accuracy) : '?'}m`;
   document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-
   if (!driverMarker) {
     driverMarker = L.marker([lat, lng], {
       icon: L.divIcon({
@@ -274,8 +305,6 @@ function onGPS(pos) {
     driverMarker.setLatLng([lat, lng]);
   }
   map.setView([lat, lng], 15);
-
-  // Send to server
   if (tripActive) {
     api.trips.updateLocation({ latitude: lat, longitude: lng, speed: parseFloat(kmh) }).catch(() => {});
   }
@@ -287,15 +316,13 @@ function onGPSError(err) {
 }
 
 function simulateGPS() {
-  // Simulates movement for demo purposes
   let lat = 17.385044, lng = 78.486671;
   const sim = setInterval(() => {
     if (!tripActive) { clearInterval(sim); return; }
     lat += (Math.random() - 0.48) * 0.001;
     lng += (Math.random() - 0.45) * 0.001;
-    const fakePos = { coords: { latitude: lat, longitude: lng, speed: Math.random() * 15, accuracy: 10 } };
-    onGPS(fakePos);
-  }, 3000);
+    onGPS({ coords: { latitude: lat, longitude: lng, speed: Math.random() * 15, accuracy: 10 } });
+  }, 5000);
 }
 
 function stopGPS() {
@@ -310,7 +337,7 @@ async function loadMyHistory() {
     const trips = await api.trips.history();
     const tbody = document.getElementById('myTripHistory');
     if (!trips.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No trips yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No trips yet</td></tr>';
       return;
     }
     tbody.innerHTML = trips.map(t => `
@@ -319,30 +346,93 @@ async function loadMyHistory() {
         <td>${t.route_name}</td>
         <td>${t.start_time ? new Date(t.start_time).toLocaleString() : '—'}</td>
         <td>${t.end_time ? new Date(t.end_time).toLocaleString() : '—'}</td>
-        <td>${t.distance ? `${t.distance} km` : '—'}</td>
+        <td>${t.distance ? t.distance + ' km' : '—'}</td>
         <td><span class="badge badge-${t.status==='completed'?'success':t.status==='active'?'primary':'secondary'}">${t.status}</span></td>
+        <td>${t.status === 'active'
+          ? `<button class="btn btn-danger btn-sm" onclick="endTripFromHistory(${t.id})">⏹ End Trip</button>`
+          : '—'}</td>
       </tr>
     `).join('');
-  } catch {}
+  } catch (e) { showToast('Failed to load trips', 'danger'); }
 }
 
-// Check on load if there's already an active trip (e.g. after re-login)
-async function checkActiveTrip() {
+async function endTripFromHistory(tripId) {
+  if (!confirm('End this active trip?')) return;
   try {
-    const trips = await api.trips.history();
-    const active = trips.find(t => t.status === 'active');
-    if (active) {
-      tripActive = true;
-      tripStartTime = new Date(active.start_time);
-      updateTripUI(true);
-      startGPS();
-      showToast('Resuming active trip — GPS sharing restarted.', 'info');
-    }
-  } catch {}
+    const res = await api.trips.end();
+    tripActive = false;
+    activeTrip = null;
+    stopGPS();
+    updateTripUI(false, null);
+    showToast('Trip ended. Distance: ' + (res.distance || 0) + ' km', 'success');
+    loadMyHistory();
+  } catch (err) { showToast(err.message, 'danger'); }
 }
 
 initMap();
 checkActiveTrip();
+loadMyBus();
+
+async function loadMyBus() {
+  try {
+    const bus = await api.buses.getMine();
+    const card = document.getElementById('busInfoCard');
+    const warn = document.getElementById('noBusWarning');
+    const startBtn = document.getElementById('btnStartTrip');
+    if (!bus) {
+      card.style.display = 'none';
+      warn.style.display = 'block';
+      startBtn.disabled = true;
+      startBtn.title = 'No bus assigned';
+      return;
+    }
+    card.style.display = 'block';
+    warn.style.display = 'none';
+    startBtn.disabled = false;
+    document.getElementById('infoBusNumber').textContent = bus.bus_number;
+    document.getElementById('infoRouteName').textContent = bus.route_name || '—';
+    document.getElementById('infoStartPoint').textContent = bus.start_point || '—';
+    document.getElementById('infoEndPoint').textContent = bus.end_point || '—';
+
+    // Draw assigned route on the map if route_id exists
+    if (bus.route_id) {
+      try {
+        const route = await api.routes.getById(bus.route_id);
+        if (route && route.stops && route.stops.length > 0) {
+          drawAssignedRoute(route);
+        }
+      } catch (e) {}
+    }
+  } catch (e) {}
+}
+
+function drawAssignedRoute(route) {
+  const stops = route.stops;
+  const coords = stops.map(s => [parseFloat(s.latitude), parseFloat(s.longitude)]);
+
+  // Draw polyline
+  L.polyline(coords, { color: '#4f46e5', weight: 4, opacity: 0.8, dashArray: '8 4' }).addTo(map);
+
+  // Draw stop markers
+  stops.forEach((s, i) => {
+    const isFirst = i === 0, isLast = i === stops.length - 1;
+    const color = isFirst ? '#10b981' : isLast ? '#ef4444' : '#6366f1';
+    const label = isFirst ? 'START' : isLast ? 'END' : String(i + 1);
+    const marker = L.marker([parseFloat(s.latitude), parseFloat(s.longitude)], {
+      icon: L.divIcon({
+        html: `<div style="background:${color};color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.35)">${label}</div>`,
+        className: '', iconSize: [28, 28], iconAnchor: [14, 14]
+      })
+    }).addTo(map);
+    marker.bindTooltip(s.stop_name, { permanent: true, direction: 'top', offset: [0, -14] });
+    marker.bindPopup(`<strong>${s.stop_name}</strong><br>${isFirst ? '🟢 Start' : isLast ? '🔴 End' : '📍 Stop ' + i}`);
+  });
+
+  // Fit map to route bounds
+  if (coords.length > 0) {
+    map.fitBounds(coords, { padding: [40, 40] });
+  }
+}
 </script>
 </body>
 </html>

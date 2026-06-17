@@ -3,9 +3,10 @@ const router = express.Router();
 const { verifyToken, requireRole } = require('../middleware/auth');
 const {
   getAllBuses, getBusById, createBus, updateBus, deleteBus,
-  getBusLocation, getAllLiveLocations
+  getBusLocation, getAllLiveLocations, getMyBus
 } = require('../controllers/busController');
 
+router.get('/mine', verifyToken, requireRole('driver'), getMyBus);
 router.get('/', verifyToken, getAllBuses);
 router.get('/live', verifyToken, getAllLiveLocations);
 router.get('/:id', verifyToken, getBusById);

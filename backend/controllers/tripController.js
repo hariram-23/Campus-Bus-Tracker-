@@ -1,5 +1,24 @@
 const db = require('../config/db');
 
+// Get driver's active trip (for re-login restore)
+exports.getActiveTrip = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const [trips] = await db.query(
+      `SELECT t.*, b.bus_number, r.route_name
+       FROM trips t
+       JOIN buses b ON t.bus_id = b.id
+       JOIN routes r ON t.route_id = r.id
+       WHERE t.driver_id = ? AND t.status = 'active'
+       LIMIT 1`,
+      [driverId]
+    );
+    res.json(trips[0] || null);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error.', error: err.message });
+  }
+};
+
 // Driver starts a trip
 exports.startTrip = async (req, res) => {
   try {

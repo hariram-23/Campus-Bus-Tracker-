@@ -1,8 +1,5 @@
 // ===== API Helper =====
-// Auto-switch between local dev and production
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:5000/api'
-  : 'https://campus-bus-tracker-api.onrender.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 function getToken() { return localStorage.getItem('cbt_token'); }
 function getUser() { return JSON.parse(localStorage.getItem('cbt_user') || 'null'); }
@@ -34,6 +31,7 @@ const api = {
   },
   buses: {
     getAll: () => apiRequest('/buses'),
+    getMine: () => apiRequest('/buses/mine'),
     getById: (id) => apiRequest(`/buses/${id}`),
     getLive: () => apiRequest('/buses/live'),
     getLocation: (id) => apiRequest(`/buses/${id}/location`),
@@ -49,6 +47,7 @@ const api = {
     delete: (id) => apiRequest(`/routes/${id}`, { method: 'DELETE' }),
   },
   trips: {
+    getActive: () => apiRequest('/trips/active'),
     start: () => apiRequest('/trips/start', { method: 'POST' }),
     end: () => apiRequest('/trips/end', { method: 'POST' }),
     updateLocation: (body) => apiRequest('/trips/location', { method: 'POST', body: JSON.stringify(body) }),

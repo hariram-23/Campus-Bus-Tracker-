@@ -13,7 +13,10 @@ exports.getAllDrivers = async (req, res) => {
 exports.createDriver = async (req, res) => {
   try {
     const { name, phone, email, password } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ message: 'Name, email, password required.' });
+    if (!name || !email || !password) return res.status(400).json({ message: 'Name, email and password are required.' });
+    // Check duplicate email
+    const [existing] = await db.query('SELECT id FROM drivers WHERE email = ?', [email]);
+    if (existing.length) return res.status(409).json({ message: 'A driver with this email already exists.' });
     const hashed = await bcrypt.hash(password, 10);
     const [result] = await db.query(
       'INSERT INTO drivers (name, phone, email, password) VALUES (?, ?, ?, ?)',

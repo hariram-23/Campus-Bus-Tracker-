@@ -12,55 +12,74 @@ Real-Time College Bus Tracking & ETA Prediction System
 ## Project Structure
 ```
 CampusBusTracker/
-├── frontend/          ← All HTML/CSS/JS pages
-│   ├── index.html              Landing page
-│   ├── login.html              Login (student/driver/admin)
-│   ├── student-dashboard.html  Live map + ETA
-│   ├── driver-dashboard.html   GPS sharing + trip control
-│   ├── admin-dashboard.html    Full management panel
+├── frontend/          ← Deploy this folder (static hosting / Nginx / Netlify)
+│   ├── index.html
+│   ├── login.html
+│   ├── student-dashboard.html
+│   ├── driver-dashboard.html
+│   ├── admin-dashboard.html
 │   ├── css/style.css
 │   └── js/api.js
-├── backend/           ← Express API
+├── backend/           ← Deploy this folder (Node.js server / Railway / Render)
 │   ├── server.js
+│   ├── database.sql   ← SQL schema + seed data (import this into MySQL)
+│   ├── .env.example   ← Copy to .env and fill in your values
 │   ├── config/db.js
 │   ├── controllers/
 │   ├── routes/
 │   └── middleware/
 └── database/
-    └── campus_bus_tracker.sql
+    └── campus_bus_tracker.sql  ← Same SQL file (source copy)
 ```
 
-## Setup
+## Deployment
 
-### 1. Database
-```sql
--- Run in MySQL Workbench or CLI
-SOURCE database/campus_bus_tracker.sql;
+### 1. Database (MySQL)
+Import the schema on your MySQL server:
+```bash
+mysql -u root -p < backend/database.sql
+# or in MySQL Workbench: File > Run SQL Script > select backend/database.sql
 ```
 
 ### 2. Backend
 ```bash
 cd backend
-copy .env.example .env
-# Edit .env with your MySQL credentials and a JWT secret
+cp .env.example .env        # Windows: copy .env.example .env
+# Edit .env — set DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, JWT_SECRET
 npm install
-npm run dev
+npm start                   # Production
+# or: npm run dev           # Development (nodemon)
 ```
+
+The backend runs on **port 5000** by default.
 
 ### 3. Frontend
-Open `frontend/index.html` in a browser, or serve with Live Server.
+Point `API_BASE` in `frontend/js/api.js` to your deployed backend URL before deploying:
+```js
+const API_BASE = 'https://your-backend-url.com/api';
+```
+Then deploy the `frontend/` folder to any static host (Netlify, Vercel, Nginx, etc.).
 
-### 4. Create admin account
-After running the SQL, set admin password via:
+For local dev, serve with:
 ```bash
-node -e "const b=require('bcryptjs');b.hash('admin123',10).then(h=>console.log(h))"
-# Copy the hash, then run in MySQL:
-# UPDATE admins SET password='<hash>' WHERE username='admin';
+cd frontend
+npx serve . -p 3000
 ```
 
-## Default Credentials (after setup)
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@campus.edu | (set manually above) |
-| Driver | (add via admin panel) | (set when creating) |
-| Student | (register via app) | (set on register) |
+### 4. Environment Variables (backend/.env)
+```
+PORT=5000
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=yourpassword
+DB_NAME=campus_bus_tracker
+JWT_SECRET=your_secret_key_here
+JWT_EXPIRES_IN=7d
+```
+
+## Default Credentials
+| Role    | Email               | Password  |
+|---------|---------------------|-----------|
+| Admin   | admin@campus.edu    | admin123  |
+| Driver  | (add via admin panel) | set on create |
+| Student | (register via app)  | set on register |

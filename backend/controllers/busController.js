@@ -1,5 +1,21 @@
 const db = require('../config/db');
 
+// Get the bus assigned to the logged-in driver
+exports.getMyBus = async (req, res) => {
+  try {
+    const [buses] = await db.query(`
+      SELECT b.*, r.route_name, r.start_point, r.end_point
+      FROM buses b
+      LEFT JOIN routes r ON b.route_id = r.id
+      WHERE b.driver_id = ?
+      LIMIT 1
+    `, [req.user.id]);
+    res.json(buses[0] || null);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error.', error: err.message });
+  }
+};
+
 // Get all buses with route and driver info
 exports.getAllBuses = async (req, res) => {
   try {
@@ -53,11 +69,23 @@ exports.createBus = async (req, res) => {
 exports.updateBus = async (req, res) => {
   try {
     const { bus_number, driver_id, route_id, capacity, status } = req.body;
+
+    // Check current bus status
+    const [buses] = await db.query('SELECT status, driver_id, route_id FROM buses WHERE id = ?', [req.params.id]);
+    if (!buses.length) return res.status(404).json({ message: 'Bus not found.' });
+
+    const currentBus = buses[0];
+    const isOnTrip = currentBus.status === 'on_trip';
+
+    // If bus is on a trip, only allow bus_number and capacity to change
+    const safeDriverId = isOnTrip ? currentBus.driver_id : (driver_id || null);
+    const safeRouteId = isOnTrip ? currentBus.route_id : (route_id || null);
+
     await db.query(
       'UPDATE buses SET bus_number=?, driver_id=?, route_id=?, capacity=?, status=? WHERE id=?',
-      [bus_number, driver_id || null, route_id || null, capacity || 40, status || 'active', req.params.id]
+      [bus_number, safeDriverId, safeRouteId, capacity || 40, isOnTrip ? 'on_trip' : (status || 'active'), req.params.id]
     );
-    res.json({ message: 'Bus updated.' });
+    res.json({ message: isOnTrip ? 'Bus updated (driver/route locked during active trip).' : 'Bus updated.' });
   } catch (err) {
     res.status(500).json({ message: 'Server error.', error: err.message });
   }
