@@ -229,9 +229,19 @@
 
   async function handleLogin(e) {
     e.preventDefault();
-    const email = document.getElementById('loginEmail').value;
+    const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     const btn = document.getElementById('loginBtn');
+
+    // Frontend validation
+    clearErrors();
+    let valid = true;
+    if (!email) { showFieldError('loginEmail', 'Email is required'); valid = false; }
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showFieldError('loginEmail', 'Enter a valid email'); valid = false; }
+    if (!password) { showFieldError('loginPassword', 'Password is required'); valid = false; }
+    else if (password.length < 6) { showFieldError('loginPassword', 'Password must be at least 6 characters'); valid = false; }
+    if (!valid) return;
+
     btn.disabled = true;
     btn.textContent = 'Signing in...';
     try {
@@ -251,19 +261,46 @@
 
   async function handleRegister(e) {
     e.preventDefault();
+    clearErrors();
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const password = document.getElementById('regPassword').value;
+
+    let valid = true;
+    if (!name || name.length < 2) { showFieldError('regName', 'Name must be at least 2 characters'); valid = false; }
+    if (!email) { showFieldError('regEmail', 'Email is required'); valid = false; }
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showFieldError('regEmail', 'Enter a valid email'); valid = false; }
+    if (phone && !/^\d{10}$/.test(phone.replace(/\s/g,''))) { showFieldError('regPhone', 'Phone must be 10 digits'); valid = false; }
+    if (!password) { showFieldError('regPassword', 'Password is required'); valid = false; }
+    else if (password.length < 6) { showFieldError('regPassword', 'Password must be at least 6 characters'); valid = false; }
+    if (!valid) return;
+
     try {
-      const data = await api.auth.studentRegister({
-        name: document.getElementById('regName').value,
-        email: document.getElementById('regEmail').value,
-        phone: document.getElementById('regPhone').value,
-        password: document.getElementById('regPassword').value
-      });
+      const data = await api.auth.studentRegister({ name, email, phone, password });
       setAuth(data.token, data.user);
       showToast('Account created!', 'success');
       setTimeout(() => window.location.href = 'student-dashboard.html', 800);
     } catch (err) {
       showToast(err.message, 'danger');
     }
+  }
+
+  function showFieldError(fieldId, msg) {
+    const field = document.getElementById(fieldId);
+    field.style.borderColor = '#ef4444';
+    let err = field.parentElement.querySelector('.field-err');
+    if (!err) { err = document.createElement('div'); err.className = 'field-err'; field.parentElement.appendChild(err); }
+    err.textContent = msg;
+    err.style.cssText = 'color:#ef4444;font-size:.75rem;margin-top:.25rem;';
+    field.addEventListener('input', function() {
+      field.style.borderColor = ''; if (err) err.remove();
+    }, { once: true });
+  }
+
+  function clearErrors() {
+    document.querySelectorAll('.field-err').forEach(e => e.remove());
+    document.querySelectorAll('.form-control').forEach(f => f.style.borderColor = '');
   }
 
   // Set initial role from URL
